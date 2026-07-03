@@ -1,0 +1,138 @@
+# HRIP — Local Development Environment
+# Usage: docker compose up -d
+#
+# Services:
+#   postgres   - PostgreSQL 16 database
+#   redis      - Redis 7 (sessions, cache, rate limiting)
+#   backend    - FastAPI backend (hot-reload)
+#   ai-engine  - FastAPI AI engine (hot-reload)
+#   frontend   - Next.js frontend (hot-reload)
+
+version: "3.9"
+
+networks:
+  hrip-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: hrip-postgres
+    environment:
+      POSTGRES_DB: hrip_dev
+      POSTGRES_USER: hrip
+      POSTGRES_PASSWORD: hrip_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/schema:/docker-entrypoint-initdb.d:ro
+    networks:
+      - hrip-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hrip -d hrip_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis ───────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: hrip-redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - hrip-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Backend ─────────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: hrip-backend
+    environment:
+      ENVIRONMENT: development
+      DEBUG: "true"
+      DATABASE_URL: postgresql+asyncpg://hrip:hrip_dev_password@postgres:5432/hrip_dev
+      REDIS_URL: redis://redis:6379/0
+      AI_ENGINE_URL: http://ai-engine:8001
+      # JWT keys: generate with: openssl genrsa -out private.pem 2048
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: "15"
+      JWT_REFRESH_TOKEN_EXPIRE_DAYS: "7"
+      AI_ENGINE_API_KEY: ${AI_ENGINE_API_KEY:-dev-ai-key}
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:-}
+      CORS_ALLOWED_ORIGINS: '["http://localhost:3000"]'
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - hrip-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── AI Engine ───────────────────────────────────────────────────────────────
+  ai-engine:
+    build:
+      context: ./ai-engine
+      dockerfile: Dockerfile
+    container_name: hrip-ai-engine
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+asyncpg://hrip:hrip_dev_password@postgres:5432/hrip_dev
+      API_KEY: ${AI_ENGINE_API_KEY:-dev-ai-key}
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./ai-engine:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
+    networks:
+      - hrip-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── Frontend ────────────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: hrip-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev
+    networks:
+      - hrip-network
+    depends_on:
+      - backend

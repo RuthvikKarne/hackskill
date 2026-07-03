@@ -1,0 +1,39 @@
+name: AI Engine CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'ai-engine/**'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'ai-engine/**'
+
+jobs:
+  lint-and-test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        working-directory: ai-engine
+        run: pip install -r requirements.txt
+
+      - name: Run ruff (linter)
+        working-directory: ai-engine
+        run: ruff check app/ || true   # non-blocking until Phase 6
+
+      - name: Run tests
+        working-directory: ai-engine
+        env:
+          DATABASE_URL: postgresql+asyncpg://hrip:test@localhost:5432/hrip_test
+          API_KEY: test-key
+        run: pytest tests/ -v || true   # non-blocking until Phase 6
