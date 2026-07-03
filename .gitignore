@@ -1,0 +1,67 @@
+# =============================================================================
+# HRIP — .gitignore
+# =============================================================================
+
+# ── Secrets / Environment ─────────────────────────────────────────────────────
+.env
+.env.local
+.env.production
+.env.staging
+*.pem
+*.key
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.installed.cfg
+*.egg
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# ── Node.js ───────────────────────────────────────────────────────────────────
+node_modules/
+.next/
+out/
+build/
+*.tsbuildinfo
+.npm
+
+# ── AI / ML ───────────────────────────────────────────────────────────────────
+ai-engine/models/*.pkl
+ai-engine/models/*.joblib
+ai-engine/models/*.h5
+ai-engine/models/*.onnx
+ai-engine/notebooks/.ipynb_checkpoints/
+ai-engine/datasets/
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+docker-compose.override.yml
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── IDEs ──────────────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ── Alembic ───────────────────────────────────────────────────────────────────
+alembic.ini
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/
