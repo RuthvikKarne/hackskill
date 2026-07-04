@@ -14,10 +14,16 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
+import redis.asyncio as redis
 
 from app.config import get_settings
+from app.core.database.session import get_db_session
+from app.core.database.redis import get_redis
+from typing import Any
 
 # ── Module routers will be imported here as they are implemented ──────────────
 # from app.modules.auth.router import router as auth_router
@@ -53,15 +59,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     settings = get_settings()
 
     # ── Startup ────────────────────────────────────────────────────────────────
-    # TODO Phase 1: Initialize DB connection pool
     # TODO Phase 1: Initialize Redis connection
     # TODO Phase 1: Initialize Event Bus
     # TODO Phase 1: Register event subscriptions
+    # DB engine is initialized globally in session.py upon import, we don't need explicit startup unless we test connections.
 
     yield  # Application runs here
 
     # ── Shutdown ───────────────────────────────────────────────────────────────
-    # TODO Phase 1: Close DB pool
+    from app.core.database.session import engine
+    await engine.dispose()
+    
     # TODO Phase 1: Close Redis
     # TODO Phase 1: Drain event bus
 
@@ -117,10 +125,30 @@ def create_app() -> FastAPI:
         return {"status": "healthy", "service": "hrip-backend"}
 
     @app.get("/ready", tags=["Health"])
-    async def ready() -> dict[str, str]:
+    async def ready(
+        db: AsyncSession = Depends(get_db_session),
+        redis_client: redis.Redis = Depends(get_redis)
+    ) -> dict[str, Any]:
         """Readiness check — confirms DB and Redis are reachable."""
-        # TODO Phase 1: check DB + Redis connectivity
-        return {"status": "ready"}
+        status = {"status": "ready", "checks": {}}
+        
+        # Check DB
+        try:
+            await db.execute(text("SELECT 1"))
+            status["checks"]["database"] = "ok"
+        except Exception as e:
+            status["status"] = "error"
+            status["checks"]["database"] = f"error: {e}"
+
+        # Check Redis
+        try:
+            await redis_client.ping()
+            status["checks"]["redis"] = "ok"
+        except Exception as e:
+            status["status"] = "error"
+            status["checks"]["redis"] = f"error: {e}"
+
+        return status
 
     return app
 

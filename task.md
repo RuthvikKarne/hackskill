@@ -57,22 +57,22 @@
 ---
 
 ## Phase 1 — Backend Foundation
-- [ ] FastAPI lifespan management
-- [ ] Pydantic Settings (env config)
-- [ ] Async PostgreSQL (SQLAlchemy + asyncpg)
-- [ ] Alembic migrations
-- [ ] Redis connection
-- [ ] In-process Event Bus
+- [x] FastAPI lifespan management
+- [x] Pydantic Settings (env config)
+- [x] Async PostgreSQL (SQLAlchemy + asyncpg)
+- [x] Alembic migrations
+- [x] Redis connection
+- [x] In-process Event Bus
 - [ ] JWT middleware (RS256)
 - [ ] RBAC middleware
 - [ ] Global exception handler
 - [ ] Request ID middleware
-- [ ] Standard response wrapper
+- [x] Standard response wrapper
 - [ ] Rate limiter (slowapi + Redis)
-- [ ] Health check endpoints
+- [x] Health check endpoints
 - [ ] Structured logging (structlog)
-- [ ] Base Repository class
-- [ ] Pagination utility
+- [x] Base Repository class
+- [x] Pagination utility
 - [ ] docker-compose.yml working locally
 - [ ] Unit tests for core/ (100% coverage target)
 
