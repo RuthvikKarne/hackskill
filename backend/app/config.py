@@ -73,6 +73,21 @@ class Settings(BaseSettings):
             raise ValueError(f"ENVIRONMENT must be one of {allowed}")
         return v
 
+    @field_validator("JWT_PRIVATE_KEY", "JWT_PUBLIC_KEY")
+    @classmethod
+    def normalize_jwt_keys(cls, v: str) -> str:
+        """Normalize PEM-formatted JWT keys from environment variables."""
+        if not v:
+            return v
+
+        normalized = v.strip()
+        if len(normalized) >= 2 and normalized[0] == normalized[-1] and normalized[0] in {'"', "'"}:
+            normalized = normalized[1:-1]
+
+        normalized = normalized.replace("\\r\\n", "\n").replace("\\n", "\n")
+        normalized = normalized.replace("\r\n", "\n").replace("\r", "\n")
+        return normalized.strip()
+
 
 @lru_cache
 def get_settings() -> Settings:

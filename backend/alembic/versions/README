@@ -1,0 +1,6 @@
+# Alembic versions directory
+# Migration revision files are auto-generated here by:
+#   alembic revision --autogenerate -m "description"
+#
+# First migration will be created in Phase 2 when User/Role models are added.
+# Do NOT manually create files here.
