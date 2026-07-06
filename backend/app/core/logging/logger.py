@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 """Structured logging configuration for HRIP backend.
 
 Uses structlog with two output modes:
@@ -16,11 +17,18 @@ within that request, courtesy of structlog's AsyncLocalStorage context.
 """
 from __future__ import annotations
 
+=======
+"""Structured logging configuration.
+
+Uses structlog to provide JSON-formatted, context-aware logging.
+"""
+>>>>>>> d9048f63f52a0d37227ef395a75b662abc01e5c8
 import logging
 import sys
 from typing import Any
 
 import structlog
+<<<<<<< HEAD
 from structlog.types import EventDict, WrappedLogger
 
 
@@ -84,10 +92,41 @@ def configure_logging(
         + [
             structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
         ],
+=======
+
+def setup_logging(json_logs: bool = False, log_level: int = logging.INFO) -> None:
+    """Configure structlog globally.
+    
+    Args:
+        json_logs: If True, logs will be formatted as JSON (for production).
+                   Otherwise, formatted as colorized text (for development).
+        log_level: Minimum logging level.
+    """
+    logging.basicConfig(format="%(message)s", stream=sys.stdout, level=log_level)
+
+    processors: list[Any] = [
+        structlog.stdlib.add_logger_name,
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.PositionalArgumentsFormatter(),
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+        structlog.processors.UnicodeDecoder(),
+    ]
+
+    if json_logs:
+        processors.append(structlog.processors.JSONRenderer())
+    else:
+        processors.append(structlog.dev.ConsoleRenderer())
+
+    structlog.configure(
+        processors=processors,
+>>>>>>> d9048f63f52a0d37227ef395a75b662abc01e5c8
         logger_factory=structlog.stdlib.LoggerFactory(),
         wrapper_class=structlog.stdlib.BoundLogger,
         cache_logger_on_first_use=True,
     )
+<<<<<<< HEAD
 
     formatter = structlog.stdlib.ProcessorFormatter(
         # These run on every stdlib log record redirected through structlog
@@ -150,3 +189,5 @@ def bind_request_context(
         actor_id=actor_id or "anonymous",
         hospital_id=hospital_id or "none",
     )
+=======
+>>>>>>> d9048f63f52a0d37227ef395a75b662abc01e5c8

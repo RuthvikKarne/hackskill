@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 """Async SQLAlchemy engine + session factory for HRIP backend.
 
 Creates a single async engine with asyncpg driver. Session lifecycle is
@@ -13,6 +14,16 @@ an in-memory or test-database engine via override_engine().
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
+=======
+"""Database session management.
+
+This module provides the SQLAlchemy asynchronous engine and session maker
+for connecting to the PostgreSQL database.
+"""
+from __future__ import annotations
+
+from typing import AsyncGenerator
+>>>>>>> d9048f63f52a0d37227ef395a75b662abc01e5c8
 
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -20,6 +31,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+<<<<<<< HEAD
 from sqlalchemy.orm import DeclarativeBase
 
 from app.core.logging.logger import get_logger
@@ -169,3 +181,42 @@ def override_engine(engine: AsyncEngine) -> None:
         autoflush=False,
         autocommit=False,
     )
+=======
+
+from app.config import get_settings
+
+settings = get_settings()
+
+# Create the async engine
+# The URL must be an async driver URL (e.g., postgresql+asyncpg://...)
+engine: AsyncEngine = create_async_engine(
+    str(settings.DATABASE_URL),
+    pool_size=settings.DATABASE_POOL_SIZE,
+    max_overflow=settings.DATABASE_MAX_OVERFLOW,
+    echo=settings.DEBUG,
+)
+
+# Create the async session factory
+AsyncSessionLocal = async_sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autoflush=False,
+)
+
+
+async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
+    """Dependency to get an async database session per request.
+
+    Yields:
+        AsyncSession: The database session.
+    """
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
+>>>>>>> d9048f63f52a0d37227ef395a75b662abc01e5c8

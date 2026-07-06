@@ -57,65 +57,65 @@
 ---
 
 ## Phase 1 — Backend Foundation
-- [ ] FastAPI lifespan management
-- [ ] Pydantic Settings (env config)
-- [ ] Async PostgreSQL (SQLAlchemy + asyncpg)
-- [ ] Alembic migrations
-- [ ] Redis connection
-- [ ] In-process Event Bus
-- [ ] JWT middleware (RS256)
-- [ ] RBAC middleware
-- [ ] Global exception handler
-- [ ] Request ID middleware
-- [ ] Standard response wrapper
-- [ ] Rate limiter (slowapi + Redis)
-- [ ] Health check endpoints
-- [ ] Structured logging (structlog)
-- [ ] Base Repository class
-- [ ] Pagination utility
-- [ ] docker-compose.yml working locally
-- [ ] Unit tests for core/ (100% coverage target)
+- [x] FastAPI lifespan management
+- [x] Pydantic Settings (env config)
+- [x] Async PostgreSQL (SQLAlchemy + asyncpg)
+- [x] Alembic migrations
+- [x] Redis connection
+- [x] In-process Event Bus
+- [x] JWT middleware (RS256)
+- [x] RBAC middleware
+- [x] Global exception handler
+- [x] Request ID middleware
+- [x] Standard response wrapper
+- [x] Rate limiter (slowapi + Redis)
+- [x] Health check endpoints
+- [x] Structured logging (structlog)
+- [x] Base Repository class
+- [x] Pagination utility
+- [x] docker-compose.yml working locally
+- [x] Unit tests for core/ (100% coverage target)
 
 ---
 
 ## Phase 2 — Authentication Module
-- [ ] auth module (router, service, repository, schemas)
-- [ ] User + Role + Permission models + migration
-- [ ] Login endpoint
-- [ ] JWT token generation (RS256)
-- [ ] Refresh token strategy (Redis)
-- [ ] HttpOnly cookie strategy
-- [ ] Logout (token blocklist)
-- [ ] Password hashing (bcrypt)
-- [ ] GET /api/v1/auth/me
-- [ ] Integration tests for all auth flows
+- [x] auth module (router, service, repository, schemas)
+- [x] User + Role + Permission models + migration
+- [x] Login endpoint
+- [x] JWT token generation (RS256)
+- [x] Refresh token strategy (Redis)
+- [x] HttpOnly cookie strategy
+- [x] Logout (token blocklist)
+- [x] Password hashing (bcrypt)
+- [x] GET /api/v1/auth/me
+- [x] Integration tests for all auth flows
 
 ---
 
 ## Phase 3 — Core Business Modules
-- [ ] hospitals module
-- [ ] users module
-- [ ] patients module
-- [ ] inventory module
-- [ ] beds module
-- [ ] doctors module
-- [ ] laboratory module
+- [x] hospitals module
+- [x] users module
+- [x] patients module
+- [x] inventory module
+- [x] beds module
+- [x] doctors module
+- [x] laboratory module
 
 ---
 
 ## Phase 4 — Cross-Cutting Services
-- [ ] notifications module
-- [ ] audit module
-- [ ] analytics module
-- [ ] reports module
+- [x] notifications module
+- [x] audit module
+- [x] analytics module
+- [x] reports module
 
 ---
 
 ## Phase 5 — Emergency Response Module
-- [ ] Emergency incident CRUD
-- [ ] Resource calculator
-- [ ] Patient distribution
-- [ ] Ambulance tracking
+- [x] Emergency incident CRUD
+- [x] Resource calculator
+- [x] Patient distribution
+- [x] Ambulance tracking
 
 ---
 
