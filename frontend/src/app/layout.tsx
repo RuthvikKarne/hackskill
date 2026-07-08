@@ -4,7 +4,7 @@ import "./globals.css";
 import Providers from "./providers";
 
 export const metadata: Metadata = {
-  title: "HRIP — Healthcare Resource Intelligence Platform",
+  title: "HEAL — Healthcare Ecosystem for AI-driven Logistics",
   description:
     "AI-powered healthcare resource management for public health facilities. Real-time bed tracking, medicine forecasting, disease surveillance, and AI-driven recommendations.",
   keywords: "healthcare, AI, resource management, hospitals, public health",

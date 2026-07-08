@@ -8,8 +8,8 @@ interface Message {
 }
 
 // Context fed to Gemini about the current system state
-const HRIP_CONTEXT = `
-You are HRIP AI Assistant — an intelligent healthcare resource management copilot powered by Google Gemini.
+const HEAL_CONTEXT = `
+You are HEAL AI Assistant — an intelligent healthcare resource management copilot powered by Google Gemini.
 You have real-time access to the following healthcare district data:
 
 HOSPITALS:
@@ -44,7 +44,7 @@ export default function AskHRIP({ onClose }: Props) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "model",
-      text: "👋 Hi! I'm your HRIP AI Assistant powered by Gemini.\n\nI have real-time access to your hospital data, AI recommendations, and health surveillance. What would you like to know?\n\nTry asking:\n• *\"What should I prioritize today?\"*\n• *\"Why is Aster hospital at critical risk?\"*\n• *\"Summarize the disease situation\"*",
+      text: "👋 Hi! I'm your HEAL AI Assistant powered by Gemini.\n\nI have real-time access to your hospital data, AI recommendations, and health surveillance. What would you like to know?\n\nTry asking:\n• *\"What should I prioritize today?\"*\n• *\"Why is Aster hospital at critical risk?\"*\n• *\"Summarize the disease situation\"*",
     },
   ]);
   const [input, setInput] = useState("");
@@ -72,8 +72,8 @@ export default function AskHRIP({ onClose }: Props) {
 
       const chat = model.startChat({
         history: [
-          { role: "user", parts: [{ text: HRIP_CONTEXT }] },
-          { role: "model", parts: [{ text: "I understand the HRIP system context. I'm ready to assist with healthcare resource management queries." }] },
+          { role: "user", parts: [{ text: HEAL_CONTEXT }] },
+          { role: "model", parts: [{ text: "I understand the HEAL system context. I'm ready to assist with healthcare resource management queries." }] },
           ...messages.map((m) => ({
             role: m.role,
             parts: [{ text: m.text }],
@@ -138,7 +138,7 @@ export default function AskHRIP({ onClose }: Props) {
             fontSize: 18, boxShadow: "0 4px 12px rgba(139,92,246,0.4)",
           }}>✨</div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 15 }}>Ask HRIP</div>
+            <div style={{ fontWeight: 700, fontSize: 15 }}>Ask HEAL</div>
             <div style={{ fontSize: 11, color: "#a78bfa" }}>Powered by Google Gemini</div>
           </div>
         </div>
@@ -174,7 +174,7 @@ export default function AskHRIP({ onClose }: Props) {
             {msg.role === "model" && (
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
                 <div style={{ width: 20, height: 20, borderRadius: 6, background: "linear-gradient(135deg,#8b5cf6,#3b82f6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10 }}>✨</div>
-                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>HRIP AI</span>
+                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>HEAL AI</span>
               </div>
             )}
             <div className={msg.role === "user" ? "chat-bubble-user" : "chat-bubble-ai"}>

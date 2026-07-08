@@ -62,7 +62,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           }}>🏥</div>
           {!sidebarCollapsed && (
             <div>
-              <div style={{ fontWeight: 800, fontSize: 16, letterSpacing: "-0.02em" }}>HRIP</div>
+              <div style={{ fontWeight: 800, fontSize: 16, letterSpacing: "-0.02em" }}>HEAL</div>
               <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 1 }}>AI Health Platform</div>
             </div>
           )}
@@ -100,7 +100,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             }}
           >
             <span style={{ fontSize: 18, minWidth: 20, textAlign: "center" }}>✨</span>
-            {!sidebarCollapsed && <span>Ask HRIP (Gemini)</span>}
+            {!sidebarCollapsed && <span>Ask HEAL (Gemini)</span>}
           </button>
         </nav>
 
@@ -159,7 +159,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               onClick={() => setChatOpen(!chatOpen)}
               style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}
             >
-              ✨ Ask HRIP
+              ✨ Ask HEAL
             </button>
           </div>
         </header>

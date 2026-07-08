@@ -119,10 +119,10 @@ export default function LoginPage() {
             🏥
           </div>
           <h1 className="gradient-text" style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.02em", marginBottom: 8 }}>
-            HRIP
+            HEAL
           </h1>
           <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>
-            Healthcare Resource Intelligence Platform
+            Healthcare Ecosystem for AI-driven Logistics
           </p>
           <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 6 }}>
             Powered by AI · Built for Public Health
