@@ -6,7 +6,7 @@ import { useRecommendations, useApproveRecommendation, useRejectRecommendation, 
 const RISK_COLORS: Record<string, string> = {
   critical: "#ef4444", high: "#f59e0b", moderate: "#3b82f6", low: "#10b981",
 };
-const CAT_ICONS: Record<Category, string> = {
+const CAT_ICONS: Record<string, string> = {
   RISK: "🎯", FORECASTING: "📈", OPTIMIZATION: "⚡", SURVEILLANCE: "🔬",
 };
 
