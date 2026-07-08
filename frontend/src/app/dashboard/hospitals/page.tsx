@@ -85,8 +85,8 @@ export default function HospitalsPage() {
               { label: "Bed Occupancy", value: `${(selected.occupancy * 100).toFixed(0)}%`, color: selected.occupancy > 0.8 ? "#f87171" : "#34d399" },
               { label: "Stock Level", value: `${(selected.stock * 100).toFixed(0)}%`, color: selected.stock < 0.3 ? "#f87171" : "#34d399" },
               { label: "Avg Wait Time", value: `${selected.waitTime} min`, color: selected.waitTime > 60 ? "#fbbf24" : "#34d399" },
-              { label: "Total Beds", value: `${selected.beds}`, color: "var(--text-primary)" },
-              { label: "ICU Beds", value: `${selected.icu}`, color: "var(--text-primary)" },
+              { label: "Total Beds", value: `${selected.beds_capacity}`, color: "var(--text-primary)" },
+              { label: "ICU Beds", value: `${selected.icu_beds}`, color: "var(--text-primary)" },
             ].map(item => (
               <div key={item.label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
                 <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{item.label}</span>
