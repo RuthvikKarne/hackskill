@@ -25,7 +25,7 @@ export default function EmergencyPage() {
           status: i.status,
           patients: i.patients_involved,
           ambulances: i.ambulances_dispatched,
-          hospital: i.hospitals?.name || 'Unknown',
+          hospital: (i.hospitals as any)?.name || 'Unknown',
           time: new Date(i.reported_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         })));
       }
@@ -39,7 +39,7 @@ export default function EmergencyPage() {
           id: `AMB-${a.id.split('-')[0].toUpperCase()}`,
           driver: a.driver_name,
           status: a.status,
-          hospital: a.hospitals?.name || 'Unknown',
+          hospital: (a.hospitals as any)?.name || 'Unknown',
           eta: a.eta
         })));
       }
