@@ -3,10 +3,7 @@ import { useEffect, useState } from "react";
 import "leaflet/dist/leaflet.css";
 import { MapContainer, TileLayer, CircleMarker, Tooltip } from "react-leaflet";
 
-interface Hospital {
-  id: string; name: string; city: string; lat: number; lng: number;
-  occupancy: number; stock: number; risk: number; level: string;
-}
+import { Hospital } from "@/lib/queries";
 
 const RISK_COLORS: Record<string, string> = {
   critical: "#ef4444", high: "#f59e0b", moderate: "#3b82f6", low: "#10b981",

@@ -8,8 +8,8 @@ export interface Hospital {
   name: string;
   code: string;
   city: string;
-  latitude: number;
-  longitude: number;
+  lat: number;
+  lng: number;
   beds_capacity: number;
   icu_beds: number;
   status: string;
@@ -89,8 +89,8 @@ export function useHospitals() {
             name: h.name,
             code: h.id,
             city: h.district,
-            latitude: 0,
-            longitude: 0,
+            lat: 0,
+            lng: 0,
             beds_capacity: totalBeds,
             icu_beds: 0,
             status: "active",
