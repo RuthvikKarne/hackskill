@@ -116,7 +116,7 @@ export default function HospitalsPage() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
               <div>
                 <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>{h.name}</div>
-                <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{h.city} · {h.beds} beds</div>
+                <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{h.city} · {h.beds_capacity} beds</div>
               </div>
               <span className={`badge-${h.level}`} style={{ borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700 }}>
                 {h.level.toUpperCase()}
