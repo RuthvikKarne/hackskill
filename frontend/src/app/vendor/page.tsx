@@ -16,7 +16,7 @@ export default function VendorDashboard() {
       if (data) {
         setOrders(data.map(o => ({
           id: `ORD-${o.id.split('-')[0].toUpperCase()}`,
-          hospital: o.hospitals?.name || "Unknown",
+          hospital: (o.hospitals as any)?.name || "Unknown",
           item: `${o.quantity}x ${o.item_name}`,
           priority: o.priority,
           status: o.status
