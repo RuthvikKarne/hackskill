@@ -1,0 +1,192 @@
+# HRIP — Production Environment
+# Usage: docker compose -f docker-compose.prod.yml up -d
+#
+# Differences from docker-compose.yml (dev):
+#   - No volume mounts (code baked into images)
+#   - No hot-reload (--workers 4 instead of --reload)
+#   - Production env vars (set via .env.prod or CI secrets)
+#   - Nginx reverse proxy added
+#   - Prometheus metrics scraping added
+#   - Frontend uses Next.js standalone output (npm run build)
+
+version: "3.9"
+
+networks:
+  hrip-prod-network:
+    driver: bridge
+
+volumes:
+  postgres_prod_data:
+  redis_prod_data:
+  prometheus_data:
+
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: hrip-prod-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-hrip_prod}
+      POSTGRES_USER: ${POSTGRES_USER:-hrip}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    networks:
+      - hrip-prod-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hrip} -d ${POSTGRES_DB:-hrip_prod}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # NOT exposed externally in production — accessed only within the Docker network
+
+  # ── Redis ───────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: hrip-prod-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    volumes:
+      - redis_prod_data:/data
+    networks:
+      - hrip-prod-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Backend ─────────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    image: hrip/backend:${APP_VERSION:-latest}
+    container_name: hrip-prod-backend
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: production
+      DEBUG: "false"
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-hrip}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-hrip_prod}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      AI_ENGINE_URL: http://ai-engine:8001
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:?JWT_PRIVATE_KEY is required}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:?JWT_PUBLIC_KEY is required}
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: "15"
+      JWT_REFRESH_TOKEN_EXPIRE_DAYS: "7"
+      AI_ENGINE_API_KEY: ${AI_ENGINE_API_KEY:?AI_ENGINE_API_KEY is required}
+      CORS_ALLOWED_ORIGINS: '["https://${DOMAIN:?DOMAIN is required}"]'
+    expose:
+      - "8000"
+    networks:
+      - hrip-prod-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # ── AI Engine ───────────────────────────────────────────────────────────────
+  ai-engine:
+    build:
+      context: ./ai-engine
+      dockerfile: Dockerfile
+      target: production
+    image: hrip/ai-engine:${APP_VERSION:-latest}
+    container_name: hrip-prod-ai-engine
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-hrip}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-hrip_prod}
+      API_KEY: ${AI_ENGINE_API_KEY}
+    expose:
+      - "8001"
+    networks:
+      - hrip-prod-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ── Frontend ────────────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: runner
+    image: hrip/frontend:${APP_VERSION:-latest}
+    container_name: hrip-prod-frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: https://${DOMAIN}/api
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+    expose:
+      - "3000"
+    networks:
+      - hrip-prod-network
+    depends_on:
+      - backend
+
+  # ── Nginx (Reverse Proxy) ────────────────────────────────────────────────────
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    image: hrip/nginx:${APP_VERSION:-latest}
+    container_name: hrip-prod-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro    # SSL certificates
+    networks:
+      - hrip-prod-network
+    depends_on:
+      - backend
+      - frontend
+      - ai-engine
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Prometheus ──────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: hrip-prod-prometheus
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+    volumes:
+      - ./nginx/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    expose:
+      - "9090"
+    networks:
+      - hrip-prod-network
+    depends_on:
+      - backend
+      - ai-engine

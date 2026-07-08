@@ -1,0 +1,48 @@
+# HRIP — Prometheus Configuration
+# Scrapes metrics from backend and AI engine
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: 'production'
+    project: 'hrip'
+
+scrape_configs:
+
+  # ── Backend (FastAPI + prometheus-fastapi-instrumentator) ──────────────────
+  - job_name: 'hrip-backend'
+    static_configs:
+      - targets: ['backend:8000']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # ── AI Engine ──────────────────────────────────────────────────────────────
+  - job_name: 'hrip-ai-engine'
+    static_configs:
+      - targets: ['ai-engine:8001']
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # ── Nginx (via nginx-prometheus-exporter) ──────────────────────────────────
+  - job_name: 'hrip-nginx'
+    static_configs:
+      - targets: ['nginx:9113']
+    scrape_interval: 30s
+
+  # ── PostgreSQL (via postgres-exporter) ────────────────────────────────────
+  - job_name: 'hrip-postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 30s
+
+  # ── Redis (via redis-exporter) ─────────────────────────────────────────────
+  - job_name: 'hrip-redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 30s
+
+  # ── Prometheus self-monitoring ─────────────────────────────────────────────
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

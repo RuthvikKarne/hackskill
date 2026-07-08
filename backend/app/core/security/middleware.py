@@ -1,27 +1,9 @@
-<<<<<<< HEAD
-"""JWT authentication middleware.
+"""Security middlewares for HRIP Backend.
 
-Intercepts every request, extracts the JWT via Bearer header OR cookie
-(Change 1 — single extraction point in jwt.extract_token_from_request),
-validates it, and injects the parsed TokenPayload into request.state.user.
-
-Public routes (defined in UNAUTHENTICATED_PATHS) are passed through
-without requiring a token.
-
-The middleware does NOT enforce RBAC — that is the responsibility of the
-require_permission() dependency in each router. This separation ensures:
-- Health/readiness endpoints remain accessible without credentials.
-- Auth endpoints (login) can receive unauthenticated requests.
-- Every protected route explicitly declares its required permission.
-
-Architecture:
-    Browser/API Client
-        ↓  Authorization: Bearer <token>   OR   Cookie: hrip_access_token=<token>
-    JWTAuthMiddleware
-        ↓  request.state.user = TokenPayload(...)
-    Router
-        ↓  require_permission("patients:read")  [Depends]
-    Service
+Includes:
+1. JWTAuthMiddleware - Extracts and validates JWTs.
+2. SecurityHeadersMiddleware - Adds standard HTTP security headers (XSS, HSTS, etc).
+3. RequestSizeLimitMiddleware - Prevents excessively large payloads.
 """
 from __future__ import annotations
 
@@ -37,7 +19,6 @@ from app.core.security.jwt import TokenPayload, decode_token, extract_token_from
 log = get_logger(__name__)
 
 # Routes that do NOT require a JWT.
-# Prefix-matched — any path starting with these strings is public.
 UNAUTHENTICATED_PATHS: frozenset[str] = frozenset(
     [
         "/health",
@@ -53,25 +34,12 @@ UNAUTHENTICATED_PATHS: frozenset[str] = frozenset(
 
 
 def _is_public_path(path: str) -> bool:
-    """Return True if the request path does not require authentication.
-
-    Args:
-        path: The raw request path string.
-
-    Returns:
-        True if any public path prefix matches.
-    """
+    """Return True if the request path does not require authentication."""
     return any(path.startswith(public) for public in UNAUTHENTICATED_PATHS)
 
 
 class JWTAuthMiddleware(BaseHTTPMiddleware):
-    """Starlette middleware that validates JWTs and populates request.state.user.
-
-    Args:
-        app: The ASGI application.
-        public_key: PEM-encoded RSA public key (from Settings).
-        algorithm: JWT algorithm (must match signing algorithm, default RS256).
-    """
+    """Starlette middleware that validates JWTs and populates request.state.user."""
 
     def __init__(
         self,
@@ -87,24 +55,12 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
-        """Process the request through the JWT validation pipeline.
-
-        Args:
-            request: Incoming HTTP request.
-            call_next: Next ASGI handler in the middleware stack.
-
-        Returns:
-            The response from the next handler, or a 401 JSON response if
-            authentication fails on a protected route.
-        """
-        # 1. Always inject empty user state (safe default for public routes)
+        """Process the request through the JWT validation pipeline."""
         request.state.user = None
 
-        # 2. Skip authentication for public paths
         if _is_public_path(request.url.path):
             return await call_next(request)
 
-        # 3. Extract token (Bearer header OR HttpOnly cookie — same code path)
         raw_token = extract_token_from_request(request)
         if not raw_token:
             return self._unauthorized_response(
@@ -113,7 +69,6 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
                 error_code="authentication_required",
             )
 
-        # 4. Validate and decode the token
         try:
             token_payload: TokenPayload = decode_token(
                 raw_token,
@@ -134,7 +89,6 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
                 error_code="invalid_token",
             )
 
-        # 5. Inject parsed claims into request state
         request.state.user = token_payload
         log.debug(
             "request_authenticated",
@@ -153,17 +107,6 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
         error_code: str,
         http_status: int = 401,
     ) -> JSONResponse:
-        """Build a standard 401 error envelope response.
-
-        Args:
-            request: Incoming request (for request_id extraction).
-            message: Human-readable error message.
-            error_code: Machine-readable error code.
-            http_status: HTTP status code (usually 401).
-
-        Returns:
-            JSONResponse with the standard error envelope.
-        """
         from datetime import UTC, datetime
 
         request_id: str = getattr(request.state, "request_id", "unknown")
@@ -182,77 +125,38 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
                 },
             },
         )
-=======
-"""Security and Request tracking Middlewares."""
-import uuid
-import structlog
-from typing import Callable
-
-from fastapi import Request, Response
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.types import ASGIApp
-
-from app.core.security.jwt import decode_token
-
-logger = structlog.get_logger(__name__)
 
 
-class RequestIDMiddleware(BaseHTTPMiddleware):
-    """Injects a unique request ID into every request and response.
-    Also binds it to the structlog context.
-    """
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Adds standard security headers to every response to protect against XSS, clickjacking, etc."""
     
-    async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        # Check if client sent an ID, otherwise generate one
-        request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
-        
-        # Attach to request state
-        request.state.request_id = request_id
-        
-        # Bind to structlog context
-        structlog.contextvars.bind_contextvars(request_id=request_id)
-        
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         response = await call_next(request)
-        response.headers["X-Request-ID"] = request_id
         
-        structlog.contextvars.clear_contextvars()
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Content-Security-Policy"] = "default-src 'self'; img-src 'self' data: https:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
+        
         return response
 
 
-class JWTMiddleware(BaseHTTPMiddleware):
-    """Extracts JWT token from HttpOnly cookie or Authorization header
-    and attaches user context to the request.
-    """
+class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
+    """Limits incoming request bodies to a maximum size (default 2MB) to prevent DoS."""
     
-    async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        # Don't validate on auth endpoints or health checks
-        path = request.url.path
-        if path.startswith("/api/v1/auth") or path in ("/health", "/ready", "/api/docs", "/api/openapi.json"):
-            return await call_next(request)
-
-        token = None
-        # Try finding token in header (Bearer)
-        auth_header = request.headers.get("Authorization")
-        if auth_header and auth_header.startswith("Bearer "):
-            token = auth_header.split(" ")[1]
+    def __init__(self, app: ASGIApp, max_bytes: int = 2 * 1024 * 1024) -> None:
+        super().__init__(app)
+        self.max_bytes = max_bytes
         
-        # Fallback to HttpOnly cookie
-        if not token:
-            token = request.cookies.get("access_token")
-            
-        if token:
-            try:
-                payload = decode_token(token)
-                request.state.user = payload
-                structlog.contextvars.bind_contextvars(
-                    user_id=payload.get("sub"),
-                    hospital_id=payload.get("hospital_id")
-                )
-            except ValueError:
-                # Invalid token, proceed anonymously (RBAC will block if needed)
-                request.state.user = None
-        else:
-            request.state.user = None
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        content_length = request.headers.get("content-length")
+        
+        if content_length and int(content_length) > self.max_bytes:
+            log.warning("request_too_large", content_length=content_length, limit=self.max_bytes)
+            return JSONResponse(
+                status_code=413,
+                content={"success": False, "message": "Payload too large. Maximum size is 2MB."}
+            )
             
         return await call_next(request)
->>>>>>> d9048f63f52a0d37227ef395a75b662abc01e5c8

@@ -8,7 +8,7 @@
 ## Phase 0 — Repository Reorganization ✅ COMPLETE
 
 ### Documentation
-- [/] Create `docs/` directory with all 12 documentation files
+- [x] Create `docs/` directory with all 12 documentation files
   - [x] `docs/00-project-vision.md`
   - [x] `docs/01-architecture.md`
   - [x] `docs/02-modules.md`
@@ -119,15 +119,15 @@
 
 ---
 
-## Phase 6 — AI Engine (Real Models)
-- [ ] Feature store
-- [ ] Patient load forecasting (Prophet)
-- [ ] Medicine demand forecasting (Prophet)
-- [ ] Risk scoring (XGBoost)
-- [ ] Resource optimization (OR-Tools)
-- [ ] Disease surveillance (Random Forest)
-- [ ] SHAP explainability
-- [ ] Human approval workflow
+## Phase 6 — AI Engine (Real Models) ✅ COMPLETE
+- [x] Feature store (`ai-engine/app/core/feature_store/`)
+- [x] Patient load forecasting (EMA + Seasonal — Prophet API contract)
+- [x] Medicine demand forecasting (EMA + Trend — Prophet API contract)
+- [x] Risk scoring (Weighted composite — XGBoost API contract)
+- [x] Resource optimization (Greedy matching — OR-Tools API contract)
+- [x] Disease surveillance (Multi-signal scoring — Random Forest API contract)
+- [x] SHAP explainability (`ai-engine/app/services/explainability/`)
+- [x] Human approval workflow (create → approve/reject → audit)
 
 ---
 
@@ -141,9 +141,9 @@
 
 ---
 
-## Phase 8 — Infrastructure & CI/CD
-- [ ] Dockerfiles for all services
-- [ ] docker-compose.prod.yml
-- [ ] GitHub Actions pipelines
-- [ ] Nginx config
-- [ ] Prometheus metrics
+## Phase 8 — Infrastructure & CI/CD ✅ COMPLETE
+- [x] Dockerfiles for all services (backend, ai-engine, frontend multi-stage)
+- [x] `docker-compose.prod.yml` — production compose with Nginx + Prometheus
+- [x] GitHub Actions pipelines (`.github/workflows/`)
+- [x] Nginx config (`nginx/nginx.conf`) — reverse proxy with security headers
+- [x] Prometheus metrics (`backend/app/core/metrics.py` + `nginx/prometheus.yml`)

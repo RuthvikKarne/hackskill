@@ -1,0 +1,305 @@
+@import "tailwindcss";
+
+:root {
+  /* Clean SaaS Dark Theme (e.g. Linear/Vercel style) */
+  --bg-primary: #000000;
+  --bg-secondary: #111111;
+  --bg-card: #18181b; /* zinc-900 */
+  --bg-card-hover: #27272a; /* zinc-800 */
+  --border: #27272a; /* zinc-800 */
+  --border-active: #3f3f46; /* zinc-700 */
+  
+  --text-primary: #f4f4f5; /* zinc-50 */
+  --text-secondary: #a1a1aa; /* zinc-400 */
+  --text-muted: #71717a; /* zinc-500 */
+  
+  /* Restrained SaaS accents */
+  --accent-blue: #3b82f6;
+  --accent-cyan: #06b6d4;
+  --accent-green: #10b981;
+  --accent-orange: #f59e0b;
+  --accent-red: #ef4444;
+  --accent-purple: #8b5cf6;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Scrollbar ────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-active); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ── SaaS Cards (Replaces Glass) ──────────────────────── */
+/* Keeping the .glass class name so existing markup doesn't break, 
+   but redefining it as a clean solid card */
+.glass {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+}
+
+.glass-hover {
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.glass-hover:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-active);
+}
+
+/* ── Risk badges (Subtle & Professional) ──────────────── */
+.badge-critical {
+  background: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+.badge-high {
+  background: rgba(245, 158, 11, 0.1);
+  color: #fcd34d;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+.badge-moderate {
+  background: rgba(59, 130, 246, 0.1);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+.badge-low {
+  background: rgba(16, 185, 129, 0.1);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+/* ── Animations ───────────────────────────────────────── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Snappier SaaS animations */
+.animate-fade-in-up { animation: fadeInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-fade-in    { animation: fadeIn 0.2s ease forwards; }
+.animate-spin-slow  { animation: spin-slow 4s linear infinite; }
+
+.stagger-1 { animation-delay: 0.03s; opacity: 0; }
+.stagger-2 { animation-delay: 0.06s; opacity: 0; }
+.stagger-3 { animation-delay: 0.09s; opacity: 0; }
+.stagger-4 { animation-delay: 0.12s; opacity: 0; }
+.stagger-5 { animation-delay: 0.15s; opacity: 0; }
+
+/* ── Skeleton loading ─────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-card-hover) 50%, var(--bg-card) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+}
+
+/* ── Stripped Glow effects (Legacy overrides) ─────────── */
+.glow-blue, .glow-green, .glow-red {
+  box-shadow: none !important;
+}
+
+/* ── Input ────────────────────────────────────────────── */
+.hrip-input {
+  background: #000;
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+  width: 100%;
+}
+.hrip-input:focus {
+  border-color: var(--text-muted);
+  box-shadow: 0 0 0 1px var(--text-muted);
+}
+.hrip-input::placeholder { color: var(--text-muted); }
+
+/* ── Buttons ──────────────────────────────────────────── */
+.btn-primary {
+  background: #fff;
+  color: #000;
+  border: 1px solid #fff;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #e4e4e7; /* zinc-200 */
+}
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-success {
+  background: rgba(16, 185, 129, 0.1);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-success:hover { background: rgba(16, 185, 129, 0.2); }
+
+.btn-danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-danger:hover { background: rgba(239, 68, 68, 0.2); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-ghost:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+
+/* ── Leaflet map dark override (SaaS clean) ───────────── */
+.leaflet-container {
+  background: #000 !important;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+.leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(1.1) grayscale(0.8); }
+.leaflet-control-attribution { display: none !important; }
+.leaflet-popup-content-wrapper {
+  background: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5) !important;
+}
+.leaflet-popup-tip { background: var(--bg-card) !important; }
+.leaflet-bar a {
+  background: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border) !important;
+}
+.leaflet-bar a:hover { background: var(--bg-card-hover) !important; }
+
+/* ── Chat bubble ──────────────────────────────────────── */
+.chat-bubble-user {
+  background: #27272a; /* zinc-800 */
+  color: #fff;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  max-width: 85%;
+  align-self: flex-end;
+}
+.chat-bubble-ai {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  max-width: 85%;
+  align-self: flex-start;
+}
+
+/* ── Progress bar ─────────────────────────────────────── */
+.progress-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+/* ── Sidebar nav item ─────────────────────────────────── */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+.nav-item:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+.nav-item.active {
+  background: #fff;
+  color: #000;
+}
+
+/* ── Stat card accent lines ───────────────────────────── */
+.card-accent-blue  { border-left: 3px solid var(--accent-blue); }
+.card-accent-green { border-left: 3px solid var(--accent-green); }
+.card-accent-red   { border-left: 3px solid var(--accent-red); }
+.card-accent-orange{ border-left: 3px solid var(--accent-orange); }
+.card-accent-purple{ border-left: 3px solid var(--accent-purple); }
+
+/* ── Table ────────────────────────────────────────────── */
+.hrip-table { width: 100%; border-collapse: collapse; }
+.hrip-table th {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+.hrip-table td {
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+}
+.hrip-table tr:hover td { background: var(--bg-card-hover); color: var(--text-primary); }
