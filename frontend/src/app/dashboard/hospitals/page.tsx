@@ -1,6 +1,8 @@
 "use client";
 import dynamic from "next/dynamic";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Dynamically import map to avoid SSR issues with Leaflet
 const HospitalMap = dynamic(() => import("@/components/HospitalMap"), {
@@ -12,24 +14,101 @@ const HospitalMap = dynamic(() => import("@/components/HospitalMap"), {
   ),
 });
 
-import { useHospitals, Hospital } from "@/lib/queries";
+import { useHospitals, useAddHospital, Hospital } from "@/lib/queries";
 
 const RISK_COLORS: Record<string, string> = {
   critical: "#ef4444", high: "#f59e0b", moderate: "#3b82f6", low: "#10b981",
 };
 
+type NewHospitalForm = {
+  name: string;
+  district: string;
+  address: string;
+  phone: string;
+  email: string;
+  latitude: string;
+  longitude: string;
+};
+
+const EMPTY_FORM: NewHospitalForm = {
+  name: "", district: "", address: "", phone: "", email: "", latitude: "", longitude: "",
+};
+
 export default function HospitalsPage() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const { data: HOSPITALS = [], isLoading, isError } = useHospitals();
+  const addHospital = useAddHospital();
+
   const [selected, setSelected] = useState<Hospital | null>(null);
   const [filter, setFilter] = useState<string>("all");
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [form, setForm] = useState<NewHospitalForm>(EMPTY_FORM);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const filtered = filter === "all" ? HOSPITALS : HOSPITALS.filter(h => h.level === filter);
 
+  function updateField(key: keyof NewHospitalForm, value: string) {
+    setForm(prev => ({ ...prev, [key]: value }));
+  }
+
+  function closeModal() {
+    setShowAddModal(false);
+    setForm(EMPTY_FORM);
+    setFormError(null);
+  }
+
+  async function handleAddHospital(e: React.FormEvent) {
+    e.preventDefault();
+    setFormError(null);
+
+    if (!form.name.trim() || !form.district.trim() || !form.address.trim()) {
+      setFormError("Name, district, and address are required.");
+      return;
+    }
+
+    const lat = form.latitude ? parseFloat(form.latitude) : null;
+    const lng = form.longitude ? parseFloat(form.longitude) : null;
+    if (form.latitude && Number.isNaN(lat)) {
+      setFormError("Latitude must be a number.");
+      return;
+    }
+    if (form.longitude && Number.isNaN(lng)) {
+      setFormError("Longitude must be a number.");
+      return;
+    }
+
+    try {
+      const newHospital = await addHospital.mutateAsync({
+        name: form.name.trim(),
+        district: form.district.trim(),
+        address: form.address.trim(),
+        phone: form.phone.trim() || null,
+        email: form.email.trim() || null,
+        latitude: lat,
+        longitude: lng,
+      });
+
+      await queryClient.invalidateQueries({ queryKey: ["hospitals"] });
+      closeModal();
+
+      // Basic hospital record created — send them to fill in beds/inventory next
+      router.push(`/dashboard/hospitals/${newHospital.id}/inventory`);
+    } catch (err: any) {
+      setFormError(err?.message || "Failed to add hospital. Please try again.");
+    }
+  }
+
   return (
     <div>
-      <div className="animate-fade-in-up" style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.02em", marginBottom: 4 }}>Hospital Network</h1>
-        <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>Live risk map · Click any hospital for details</p>
+      <div className="animate-fade-in-up" style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+        <div>
+          <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.02em", marginBottom: 4 }}>Hospital Network</h1>
+          <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>Live risk map · Click any hospital for details</p>
+        </div>
+        <button className="btn-primary" onClick={() => setShowAddModal(true)} style={{ fontSize: 13, padding: "8px 16px" }}>
+          + Add Hospital
+        </button>
       </div>
 
       {/* Filter pills */}
@@ -63,91 +142,164 @@ export default function HospitalsPage() {
         <>
           {/* Map + Detail panel */}
           <div className="animate-fade-in-up stagger-2" style={{ display: "grid", gridTemplateColumns: selected ? "1fr 320px" : "1fr", gap: 16, marginBottom: 20, transition: "all 0.3s" }}>
-        <div>
-          <HospitalMap hospitals={HOSPITALS} selected={selected?.id} onSelect={(id) => setSelected(HOSPITALS.find(h => h.id === id) || null)} />
-        </div>
-
-        {selected && (
-          <div className="glass animate-fade-in" style={{ borderRadius: 16, padding: 20, borderLeft: `3px solid ${RISK_COLORS[selected.level]}`, height: "fit-content" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
-              <div>
-                <h3 style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{selected.name}</h3>
-                <p style={{ color: "var(--text-secondary)", fontSize: 13 }}>{selected.city}</p>
-              </div>
-              <button onClick={() => setSelected(null)} className="btn-ghost" style={{ padding: "3px 8px" }}>✕</button>
+            <div>
+              <HospitalMap hospitals={HOSPITALS} selected={selected?.id} onSelect={(id) => setSelected(HOSPITALS.find(h => h.id === id) || null)} />
             </div>
 
-            <span className={`badge-${selected.level}`} style={{ borderRadius: 6, padding: "4px 12px", fontSize: 12, fontWeight: 700, display: "inline-block", marginBottom: 16 }}>
-              {selected.level.toUpperCase()} RISK · {(selected.risk * 100).toFixed(0)}%
-            </span>
+            {selected && (
+              <div className="glass animate-fade-in" style={{ borderRadius: 16, padding: 20, borderLeft: `3px solid ${RISK_COLORS[selected.level]}`, height: "fit-content" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+                  <div>
+                    <h3 style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{selected.name}</h3>
+                    <p style={{ color: "var(--text-secondary)", fontSize: 13 }}>{selected.city}</p>
+                  </div>
+                  <button onClick={() => setSelected(null)} className="btn-ghost" style={{ padding: "3px 8px" }}>✕</button>
+                </div>
 
-            {[
-              { label: "Bed Occupancy", value: `${(selected.occupancy * 100).toFixed(0)}%`, color: selected.occupancy > 0.8 ? "#f87171" : "#34d399" },
-              { label: "Stock Level", value: `${(selected.stock * 100).toFixed(0)}%`, color: selected.stock < 0.3 ? "#f87171" : "#34d399" },
-              { label: "Avg Wait Time", value: `${selected.waitTime} min`, color: selected.waitTime > 60 ? "#fbbf24" : "#34d399" },
-              { label: "Total Beds", value: `${selected.beds_capacity}`, color: "var(--text-primary)" },
-              { label: "ICU Beds", value: `${selected.icu_beds}`, color: "var(--text-primary)" },
-            ].map(item => (
-              <div key={item.label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
-                <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{item.label}</span>
-                <span style={{ fontSize: 13, fontWeight: 600, color: item.color }}>{item.value}</span>
+                <span className={`badge-${selected.level}`} style={{ borderRadius: 6, padding: "4px 12px", fontSize: 12, fontWeight: 700, display: "inline-block", marginBottom: 16 }}>
+                  {selected.level.toUpperCase()} RISK · {(selected.risk * 100).toFixed(0)}%
+                </span>
+
+                {[
+                  { label: "Bed Occupancy", value: `${(selected.occupancy * 100).toFixed(0)}%`, color: selected.occupancy > 0.8 ? "#f87171" : "#34d399" },
+                  { label: "Stock Level", value: `${(selected.stock * 100).toFixed(0)}%`, color: selected.stock < 0.3 ? "#f87171" : "#34d399" },
+                  { label: "Avg Wait Time", value: `${selected.waitTime} min`, color: selected.waitTime > 60 ? "#fbbf24" : "#34d399" },
+                  { label: "Total Beds", value: `${selected.beds_capacity}`, color: "var(--text-primary)" },
+                  { label: "ICU Beds", value: `${selected.icu_beds}`, color: "var(--text-primary)" },
+                ].map(item => (
+                  <div key={item.label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
+                    <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{item.label}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: item.color }}>{item.value}</span>
+                  </div>
+                ))}
+
+                <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+                  <button
+                    className="btn-primary"
+                    style={{ width: "100%", fontSize: 13 }}
+                    onClick={() => router.push(`/dashboard/hospitals/${selected.id}/inventory`)}
+                  >
+                    Manage Inventory / Beds
+                  </button>
+                  <a href="/dashboard/recommendations" style={{ display: "block" }}>
+                    <button className="btn-primary" style={{ width: "100%", fontSize: 13 }}>View AI Recommendations</button>
+                  </a>
+                  <button className="btn-ghost" style={{ width: "100%", fontSize: 13 }}>📞 {selected.phone}</button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Hospital cards grid */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
+            {filtered.map((h, i) => (
+              <div
+                key={h.id}
+                className={`glass glass-hover animate-fade-in-up stagger-${Math.min(i + 2, 5)}`}
+                onClick={() => setSelected(h)}
+                style={{ borderRadius: 14, padding: "18px 20px", cursor: "pointer", borderLeft: `3px solid ${RISK_COLORS[h.level]}` }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>{h.name}</div>
+                    <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{h.city} · {h.beds_capacity} beds</div>
+                  </div>
+                  <span className={`badge-${h.level}`} style={{ borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700 }}>
+                    {h.level.toUpperCase()}
+                  </span>
+                </div>
+
+                <div style={{ display: "flex", gap: 12 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>Beds</div>
+                    <div className="progress-bar">
+                      <div className="progress-fill" style={{ width: `${h.occupancy * 100}%`, background: h.occupancy > 0.8 ? "#ef4444" : h.occupancy > 0.6 ? "#f59e0b" : "#10b981" }} />
+                    </div>
+                    <div style={{ fontSize: 12, marginTop: 3, fontWeight: 600, color: h.occupancy > 0.8 ? "#f87171" : "var(--text-primary)" }}>{(h.occupancy * 100).toFixed(0)}%</div>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>Stock</div>
+                    <div className="progress-bar">
+                      <div className="progress-fill" style={{ width: `${h.stock * 100}%`, background: h.stock < 0.3 ? "#ef4444" : h.stock < 0.5 ? "#f59e0b" : "#10b981" }} />
+                    </div>
+                    <div style={{ fontSize: 12, marginTop: 3, fontWeight: 600, color: h.stock < 0.3 ? "#f87171" : "var(--text-primary)" }}>{(h.stock * 100).toFixed(0)}%</div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 2 }}>Risk</div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: RISK_COLORS[h.level] }}>{(h.risk * 100).toFixed(0)}</div>
+                  </div>
+                </div>
               </div>
             ))}
-
-            <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
-              <a href="/dashboard/recommendations" style={{ display: "block" }}>
-                <button className="btn-primary" style={{ width: "100%", fontSize: 13 }}>View AI Recommendations</button>
-              </a>
-              <button className="btn-ghost" style={{ width: "100%", fontSize: 13 }}>📞 {selected.phone}</button>
-            </div>
           </div>
-        )}
-      </div>
+        </>
+      )}
 
-      {/* Hospital cards grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
-        {filtered.map((h, i) => (
+      {/* Add Hospital modal */}
+      {showAddModal && (
+        <div
+          onClick={closeModal}
+          style={{
+            position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)",
+            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000,
+          }}
+        >
           <div
-            key={h.id}
-            className={`glass glass-hover animate-fade-in-up stagger-${Math.min(i + 2, 5)}`}
-            onClick={() => setSelected(h)}
-            style={{ borderRadius: 14, padding: "18px 20px", cursor: "pointer", borderLeft: `3px solid ${RISK_COLORS[h.level]}` }}
+            className="glass animate-fade-in"
+            onClick={(e) => e.stopPropagation()}
+            style={{ borderRadius: 16, padding: 24, width: 420, maxWidth: "90vw", maxHeight: "85vh", overflowY: "auto" }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>{h.name}</div>
-                <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{h.city} · {h.beds_capacity} beds</div>
-              </div>
-              <span className={`badge-${h.level}`} style={{ borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700 }}>
-                {h.level.toUpperCase()}
-              </span>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h3 style={{ fontWeight: 700, fontSize: 18 }}>Add Hospital</h3>
+              <button onClick={closeModal} className="btn-ghost" style={{ padding: "3px 8px" }}>✕</button>
             </div>
 
-            <div style={{ display: "flex", gap: 12 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>Beds</div>
-                <div className="progress-bar">
-                  <div className="progress-fill" style={{ width: `${h.occupancy * 100}%`, background: h.occupancy > 0.8 ? "#ef4444" : h.occupancy > 0.6 ? "#f59e0b" : "#10b981" }} />
+            <form onSubmit={handleAddHospital} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <Field label="Hospital Name *" value={form.name} onChange={(v) => updateField("name", v)} placeholder="e.g. City General Hospital" />
+              <Field label="District *" value={form.district} onChange={(v) => updateField("district", v)} placeholder="e.g. Hyderabad" />
+              <Field label="Address *" value={form.address} onChange={(v) => updateField("address", v)} placeholder="Street address" />
+              <Field label="Phone" value={form.phone} onChange={(v) => updateField("phone", v)} placeholder="+91 ..." />
+              <Field label="Email" value={form.email} onChange={(v) => updateField("email", v)} placeholder="contact@hospital.com" />
+              <div style={{ display: "flex", gap: 12 }}>
+                <Field label="Latitude" value={form.latitude} onChange={(v) => updateField("latitude", v)} placeholder="17.3850" />
+                <Field label="Longitude" value={form.longitude} onChange={(v) => updateField("longitude", v)} placeholder="78.4867" />
+              </div>
+
+              {formError && (
+                <div style={{ background: "rgba(239,68,68,0.1)", color: "#f87171", borderRadius: 8, padding: "8px 12px", fontSize: 13 }}>
+                  {formError}
                 </div>
-                <div style={{ fontSize: 12, marginTop: 3, fontWeight: 600, color: h.occupancy > 0.8 ? "#f87171" : "var(--text-primary)" }}>{(h.occupancy * 100).toFixed(0)}%</div>
+              )}
+
+              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                <button type="button" onClick={closeModal} className="btn-ghost" style={{ flex: 1, fontSize: 13 }}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary" disabled={addHospital.isPending} style={{ flex: 1, fontSize: 13 }}>
+                  {addHospital.isPending ? "Adding..." : "Add & Continue to Inventory"}
+                </button>
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>Stock</div>
-                <div className="progress-bar">
-                  <div className="progress-fill" style={{ width: `${h.stock * 100}%`, background: h.stock < 0.3 ? "#ef4444" : h.stock < 0.5 ? "#f59e0b" : "#10b981" }} />
-                </div>
-                <div style={{ fontSize: 12, marginTop: 3, fontWeight: 600, color: h.stock < 0.3 ? "#f87171" : "var(--text-primary)" }}>{(h.stock * 100).toFixed(0)}%</div>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 2 }}>Risk</div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: RISK_COLORS[h.level] }}>{(h.risk * 100).toFixed(0)}</div>
-              </div>
-            </div>
+            </form>
           </div>
-        ))}
-      </div>
-      </>
+        </div>
       )}
     </div>
+  );
+}
+
+function Field({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
+  return (
+    <label style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1, fontSize: 12, color: "var(--text-secondary)" }}>
+      {label}
+      <input
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8,
+          padding: "8px 10px", fontSize: 13, color: "var(--text-primary)", outline: "none",
+        }}
+      />
+    </label>
   );
 }

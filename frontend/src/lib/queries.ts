@@ -3,6 +3,21 @@ import { supabase } from "./supabase";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
+export interface Ward {
+  id: string;
+  ward_name: string;
+  total_beds: number;
+  occupied_beds: number;
+  hospital_id?: string | null;
+}
+
+export interface NewWardInput {
+  ward_name: string;
+  total_beds: number;
+  occupied_beds: number;
+  hospital_id?: string | null;
+}
+
 export interface Hospital {
   id: string;
   name: string;
@@ -41,6 +56,16 @@ export interface Recommendation {
   };
 }
 
+export interface NewHospitalInput {
+  name: string;
+  district: string;
+  address: string;
+  phone: string | null;
+  email: string | null;
+  latitude: number | null;
+  longitude: number | null;
+}
+
 // ── Hooks ────────────────────────────────────────────────────────────────────
 
 export function useHospitals() {
@@ -57,15 +82,15 @@ export function useHospitals() {
             incidents (severity, status)
           `);
         if (error) throw error;
-        
+
         const transformed = (data || []).map((h: any) => {
           const totalBeds = h.beds?.reduce((a: number, b: any) => a + b.total_beds, 0) || 0;
           const occupiedBeds = h.beds?.reduce((a: number, b: any) => a + b.occupied_beds, 0) || 0;
           const occupancy = totalBeds ? occupiedBeds / totalBeds : 0;
-          
+
           const totalStock = h.inventory?.reduce((a: number, b: any) => a + b.stock_level, 0) || 0;
           const totalMin = h.inventory?.reduce((a: number, b: any) => a + b.min_threshold, 0) || 1;
-          const stockRatio = totalStock / totalMin; 
+          const stockRatio = totalStock / totalMin;
           const stockScore = stockRatio > 1.5 ? 0.9 : stockRatio > 1 ? 0.6 : 0.3;
 
           const activeIncidents = h.incidents?.filter((i: any) => i.status === "Active") || [];
@@ -112,6 +137,66 @@ export function useHospitals() {
       }
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+}
+
+export function useAddHospital() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (hospital: NewHospitalInput): Promise<Hospital> => {
+      const { data, error } = await supabase
+        .from("hospitals")
+        .insert(hospital)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["hospitals"] });
+    },
+  });
+}
+
+// ── Ward hooks ───────────────────────────────────────────────────────────────
+
+export function useWards() {
+  return useQuery({
+    queryKey: ["wards"],
+    queryFn: async (): Promise<Ward[]> => {
+      try {
+        const { data, error } = await supabase
+          .from("beds")
+          .select("id, ward_name, total_beds, occupied_beds, hospital_id")
+          .order("ward_name", { ascending: true });
+        if (error) throw error;
+        return data || [];
+      } catch (e) {
+        console.error("Failed to fetch wards data:", e);
+        throw e;
+      }
+    },
+    staleTime: 1000 * 60 * 2, // 2 minutes
+  });
+}
+
+export function useAddWard() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (ward: NewWardInput): Promise<Ward> => {
+      const { data, error } = await supabase
+        .from("beds")
+        .insert(ward)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["wards"] });
+      // Also invalidate hospitals since occupancy is derived from beds
+      queryClient.invalidateQueries({ queryKey: ["hospitals"] });
+    },
   });
 }
 
