@@ -1,7 +1,6 @@
 "use client";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
-import { useHospital, useHospitalInventory, useAddInventoryItem } from "@/lib/queries";
 
 const STATUS_COLOR: Record<string, string> = { critical: "#ef4444", low: "#f59e0b", normal: "#10b981" };
 
